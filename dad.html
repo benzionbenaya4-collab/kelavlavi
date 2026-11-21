@@ -13,10 +13,10 @@
 </head>
 <body>
   <main class="wrap cc">
-    <div class="bar"><b style="font-size:22px">👨 מרכז הפיקוד של אבא</b><span class="sp"></span><a class="back" href="./">🐶 לכלבלבי</a></div>
+    <div class="bar"><b style="font-size:22px">👨‍👩‍👧 מרכז הפיקוד של אבא / אמא</b><span class="sp"></span><a class="back" href="./">🐶 לכלבלבי</a></div>
     <section class="panel" id="scan">
       <h2>📷 סריקת הדוח</h2>
-      <p style="margin:0">במכשיר של הילדה: 🐶 ← "מרכז הפיקוד של אבא" ← סיסמה ← גוללים ל־"לראות בטלפון של אבא". סורקים כאן את הקוד.</p>
+      <p style="margin:0">במכשיר של הילד/ה: "מרכז הפיקוד של אבא / אמא" ← סיסמה ← גוללים ל־"לראות בטלפון של אבא / אמא". סורקים כאן את הקוד.</p>
       <button class="btn big" type="button" id="cam">📷 פתח מצלמה וסרוק</button>
       <video id="v" playsinline muted hidden></video>
       <p class="err" id="err"></p>
@@ -28,7 +28,7 @@
       <div class="legend"><span><i style="background:var(--he)"></i>עברית</span><span><i style="background:var(--math)"></i>מתמטיקה</span><span><i style="background:var(--en)"></i>אנגלית</span></div>
       <div class="subjs" style="display:flex;flex-direction:column;gap:10px"></div>
       <p style="margin:0" id="sum"></p>
-      <p style="margin:0;color:var(--muted)">כדי להוריד כוכבים או לבחור משימה לשבוע – עושים את זה במכשיר שלה (שם נשמרים הנתונים).</p>
+      <p style="margin:0;color:var(--muted)">כדי להוריד כוכבים או לבחור משימה לשבוע – עושים את זה במכשיר של הילד/ה (שם נשמרים הנתונים).</p>
     </section>
   </main>
   <script type="module">
@@ -41,7 +41,7 @@
       const st = importCode(code); if (!st) { if (!quiet) $('#err').textContent = 'הקוד לא תקין – נסה שוב.'; return; }
       try { localStorage.setItem('klv.dad', code); } catch {}
       $('#rep').hidden = false; const R = report(st);
-      $('#when').textContent = 'עודכן: ' + new Date(st.t).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
+      $('#when').textContent = (st.profile?.grade ? 'כיתה ' + ['א׳','ב׳','ג׳','ד׳','ה׳','ו׳','ז׳','ח׳','ט׳','י׳','י״א','י״ב'][st.profile.grade - 1] + ' · ' : '') + 'עודכן: ' + new Date(st.t).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
       drawChart($('#rep canvas'), R);
       const box = $('#rep .subjs'); box.replaceChildren();
       for (const [k, s] of Object.entries(SUBJECTS)) { const r = R[k]; const d = document.createElement('div'); d.className = 'subj'; d.style.setProperty('--c', `var(--${k})`);

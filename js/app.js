@@ -1,23 +1,32 @@
 // כלבלבי – main app. Runs fully on the device.
-import { SUBJECTS, TOPICS, STORIES } from './data.js';
-import { S, save, hashPin, nextQ, record, report, exportCode } from './store.js';
-import { puppySVG, ITEMS } from './puppy.js';
+import { SUBJECTS, TOPICS, STORIES, GRADES } from './data.js';
+import { S, save, hashPin, nextQ, record, report, exportCode, resetAll, startLevels, isSummer } from './store.js';
+import { parshaFor } from './parsha.js';
+import { parshaStory } from './parsha-stories.js';
+import { puppySVG, ITEMS, COLORS, ANIMALS, setLook } from './puppy.js';
 import { VOICES, speak, stopSpeak, setMuted, canListen, listen, similar } from './speech.js';
 import { drawChart } from './report.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const app = $('#app');
-const h = (html) => { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; };
+// boy / girl: texts are written for a girl; for a boy the instructions turn masculine
+const MASC = [['אני קוראת', 'אני קורא'], ['איך קוראים לה', 'איך קוראים לו'], ['מתקדמת', 'מתקדם'], ['הכי טובה ב', 'הכי טוב ב'], ['התאימי', 'התאם'], ['קראי', 'קרא'], ['כתבי', 'כתוב'], ['השלימי', 'השלם'],
+  ['סדרי', 'סדר'], ['הקשיבי', 'הקשב'], ['בחרי', 'בחר'], ['נסי', 'נסה'], ['קחי', 'קח'], ['תרצי', 'תרצה'], ['עגלי', 'עגל'], ['לחצי', 'לחץ'], ['חמודה', 'חמוד'], ['מוכנה', 'מוכן'], ['אלחץ', 'אלחץ']];
+const G = (t) => { if (S.profile?.gender !== 'm') return t; let x = String(t); for (const [f, m] of MASC) x = x.replace(new RegExp(`(^|[^\\u05D0-\\u05EA])${f}(?=$|[^\\u05D0-\\u05EA])`, 'g'), `$1${m}`); return x; };
+const h = (html) => { const t = document.createElement('template'); t.innerHTML = G(html.trim()); return t.content.firstElementChild; };
+function applyLook() { const c = COLORS[S.profile.color] || COLORS.purple; setLook(S.profile.color, S.profile.animal); document.documentElement.style.setProperty('--purple', c.accent); document.documentElement.style.setProperty('--purple-d', c.dark); document.querySelector('meta[name=theme-color]')?.setAttribute('content', c.accent); }
+const kidName = (k) => `${ANIMALS[S.profile.animal].kid} ${SUBJECTS[k].name}`;
+applyLook();
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const nm = () => S.name || 'חמודה';
+const nm = () => S.name || G('חמודה');
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
-const say = (t, lang) => speak(t, S.voice.preset, lang);
+const say = (t, lang) => speak(G(t), S.voice.preset, lang);
 setMuted(!!S.mute);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
 // ---------------------------------------------------------------- router
 function go(view, ...a) { stopSpeak(); window.scrollTo(0, 0); app.replaceChildren(); VIEWS[view](...a); }
-const VIEWS = { onboard, home, map, task, shop, story, command };
+const VIEWS = { onboard, home, map, task, shop, story, command, parsha };
 
 function topbar(back) {
   const b = h(`<div class="bar">
@@ -36,22 +45,39 @@ function topbar(back) {
 
 // ---------------------------------------------------------------- onboarding (first time only)
 function onboard(step = 0) {
-  const steps = 6, dots = `<div class="stepdots">${Array.from({ length: steps }, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>`;
+  const steps = 7, dots = `<div class="stepdots">${Array.from({ length: steps }, (_, i) => `<i class="${i === step ? 'on' : ''}"></i>`).join('')}</div>`;
   const W = h(`<div class="wrap"></div>`); app.append(W);
   const card = (html) => { const c = h(`<section class="onb">${html}${dots}</section>`); W.append(c); return c; };
-  if (step === 0) { const c = card(`<div class="art">${puppySVG('math')}</div><h2>ברוכים הבאים לכלבלבי! 🐶💜</h2><p>שלושה גורים פרוותיים עוזרים ללמוד <b>חשבון, אנגלית ועברית</b> של כיתה ב׳.</p><button class="btn big" type="button">הבא ←</button>`); c.querySelector('button').onclick = () => go('onboard', 1); }
-  if (step === 1) { const c = card(`<h2>איך מרוויחים? 🦴⭐</h2><p>על כל משימה – <b>עצם 🦴</b>.<br>אחרי <b>10 משימות – כוכב ⭐</b>.</p><p>עם העצמות מאכילים את הגורים ומקבלים להם בגדים. הכוכבים הם <b>החנות של אבא</b> – אבא מפנק עליהם!</p><p>נתקעת? לוחצים על <b>🐶 כלבלבי</b> והוא מסביר.</p><button class="btn big" type="button">הבא ←</button>`); c.querySelector('button').onclick = () => go('onboard', 2); }
-  if (step === 2) { const c = card(`<h2>אבא – סיסמה 🔐</h2><p>בחר סיסמה של 4 ספרות. איתה תוכל לראות את הדוח ולהוריד כוכבים אחרי שפינקת.</p><button class="btn big" type="button">ליצירת סיסמה</button>`);
-    c.querySelector('button').onclick = async () => { const p1 = await pinPad('אבא, בחר סיסמה'); if (!p1) return; const p2 = await pinPad('שוב, לאישור'); if (p1 !== p2) { toast('הסיסמאות לא תואמות – ננסה שוב'); return; } S.pinHash = await hashPin(p1); save(); go('onboard', 3); }; }
-  if (step === 3) { const c = card(`<h2>איך קוראים לה? 💜</h2><p>השם נשמר רק במכשיר הזה.</p><input type="text" id="kidname" maxlength="14" autocomplete="off" aria-label="שם"><button class="btn big" type="button">הבא ←</button>`);
-    const i = c.querySelector('input'); i.value = S.name; c.querySelector('button').onclick = () => { const v = i.value.trim(); if (!v) { i.focus(); return; } S.name = v; save(); go('onboard', 4); }; }
-  if (step === 4) { const c = card(`<div class="art">${puppySVG('en')}</div><h2>הקול של כלבלבי 🔊</h2><p>לוחצים על קול – ושומעים אותו.</p><div class="voices">${VOICES.map((v) => `<button type="button" data-v="${v.id}" aria-pressed="${S.voice.preset === v.id}">🐶 ${v.name}</button>`).join('')}</div><button class="btn big" type="button" data-next>הבא ←</button>`);
+  if (step === 0) { const c = card(`<div class="art">${puppySVG('math')}</div><h2>ברוכים הבאים לכלבלבי! 🐾💜</h2><p>חברים פרוותיים שעוזרים ללמוד <b>מתמטיקה, אנגלית ועברית</b> – מכיתה א׳ ועד י״ב. החומר מתקדם לבד לאורך השנה.</p><button class="btn big" type="button">הבא ←</button>`); c.querySelector('button').onclick = () => go('onboard', 1); }
+  if (step === 1) { const c = card(`<h2>איך מרוויחים? 🦴⭐</h2><p>על כל משימה – <b>עצם 🦴</b>.<br>אחרי <b>10 משימות – כוכב ⭐</b>.</p><p>עם העצמות מאכילים את החברים הפרוותיים ומקבלים להם בגדים. הכוכבים הם <b>החנות של אבא / אמא</b> – מפנקים עליהם!</p><p>נתקעים? לוחצים על <b>🐶 כלבלבי</b> והוא מסביר. וביום שישי – <b>סיפור על פרשת השבוע</b> 🕯️</p><button class="btn big" type="button">הבא ←</button>`); c.querySelector('button').onclick = () => go('onboard', 2); }
+  if (step === 2) { const c = card(`<h2>אבא / אמא – סיסמה 🔐</h2><p>בחרו סיסמה של 4 ספרות. איתה רואים את הדוח ומורידים כוכבים אחרי פינוק.</p><button class="btn big" type="button">ליצירת סיסמה</button>`);
+    c.querySelector('button').onclick = async () => { const p1 = await pinPad('בחרו סיסמה'); if (!p1) return; const p2 = await pinPad('שוב, לאישור'); if (p1 !== p2) { toast('הסיסמאות לא תואמות – ננסה שוב'); return; } S.pinHash = await hashPin(p1); save(); go('onboard', 3); }; }
+  if (step === 3) { // who are you?
+    const P = S.profile;
+    const c = card(`<h2>מי אני? 💜</h2><p>השם והבחירות נשמרים רק במכשיר הזה.</p>
+      <input type="text" id="kidname" maxlength="14" autocomplete="off" aria-label="שם" placeholder="שם">
+      <div class="voices" role="group" aria-label="בן או בת" style="flex-direction:row"><button type="button" data-g="f" aria-pressed="${P.gender === 'f'}">👧 בת</button><button type="button" data-g="m" aria-pressed="${P.gender === 'm'}">👦 בן</button></div>
+      <label style="font-weight:800">כיתה <select id="grade">${GRADES.map((g, i) => `<option value="${i + 1}">כיתה ${g}</option>`).join('')}</select></label>
+      <p style="font-weight:800;margin:0">צבע אהוב</p><div class="swatches">${Object.entries(COLORS).map(([k, v]) => `<button type="button" data-c="${k}" aria-label="${v.name}" aria-pressed="${P.color === k}" style="background:${v.accent}"></button>`).join('')}</div>
+      <p style="font-weight:800;margin:0">חיה אהובה</p><div class="animals">${Object.entries(ANIMALS).map(([k, v]) => `<button type="button" data-a="${k}" aria-pressed="${P.animal === k}"><span class="art">${puppySVG('math', [], { animal: k })}</span>${v.name}</button>`).join('')}</div>
+      <button class="btn big" type="button" data-next>הבא ←</button>`);
+    const i = c.querySelector('#kidname'); i.value = S.name; c.querySelector('#grade').value = P.grade;
+    const refresh = () => { save(); go('onboard', 3); setTimeout(() => { const n = $('#kidname'); if (n) n.value = S.name; }, 0); };
+    i.oninput = () => (S.name = i.value.trim());
+    c.querySelectorAll('[data-g]').forEach((b) => b.onclick = () => { P.gender = b.dataset.g; refresh(); });
+    c.querySelector('#grade').onchange = (e) => { P.grade = +e.target.value; save(); };
+    c.querySelectorAll('[data-c]').forEach((b) => b.onclick = () => { P.color = b.dataset.c; applyLook(); refresh(); });
+    c.querySelectorAll('[data-a]').forEach((b) => b.onclick = () => { P.animal = b.dataset.a; applyLook(); refresh(); });
+    c.querySelector('[data-next]').onclick = () => { S.name = i.value.trim(); if (!S.name) { i.focus(); toast('מה השם?'); return; } startLevels(); save(); go('onboard', 4); }; }
+  if (step === 4) { const c = card(`<div class="art">${puppySVG('en')}</div><h2>הקול של כלבלבי 🔊</h2><p>לוחצים על קול – ושומעים אותו.</p><div class="voices">${VOICES.map((v) => `<button type="button" data-v="${v.id}" aria-pressed="${S.voice.preset === v.id}">🐾 ${v.name}</button>`).join('')}</div><button class="btn big" type="button" data-next>הבא ←</button>`);
     c.querySelectorAll('[data-v]').forEach((b) => b.onclick = () => { S.voice.preset = b.dataset.v; save(); c.querySelectorAll('[data-v]').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); say(`שלום ${nm()}! אני כלבלבי.`); });
     c.querySelector('[data-next]').onclick = () => go('onboard', 5); }
   if (step === 5) { const c = card(`<h2>התקנה 📲</h2><p>אפשר להתקין את כלבלבי כמו אפליקציה – עם אייקון במסך הבית, ועובד גם בלי אינטרנט.</p>
-      <button class="btn big pink" type="button" data-inst>📲 התקן</button><div class="how" id="how" hidden></div><button class="btn big" type="button" data-go>יאללה, מתחילים! 🐾</button>`);
+      <button class="btn big pink" type="button" data-inst>📲 התקן</button><div class="how" id="how" hidden></div><button class="btn big" type="button" data-go>הבא ←</button>`);
     c.querySelector('[data-inst]').onclick = () => install(c.querySelector('#how'));
-    c.querySelector('[data-go]').onclick = () => { S.setup = true; save(); go('home'); setTimeout(() => say(`שלום ${nm()}! מה תרצי ללמוד?`), 300); }; }
+    c.querySelector('[data-go]').onclick = () => go('onboard', 6); }
+  if (step === 6) { const P = S.profile; const c = card(`<div class="art">${puppySVG('he')}</div><h2>הכול מוכן!</h2><p><b>${esc(S.name)}</b> · ${P.gender === 'm' ? 'בן' : 'בת'} · כיתה ${GRADES[P.grade - 1]} · ${ANIMALS[P.animal].name} ${COLORS[P.color].name}</p><button class="btn big" type="button" data-go>✨ צור חשבון</button>`);
+    c.querySelector('[data-go]').onclick = () => { S.setup = true; save(); confetti(); go('home'); setTimeout(() => say(`שלום ${nm()}! מה תרצי ללמוד?`), 300); }; }
 }
 
 // ---------------------------------------------------------------- install
@@ -70,15 +96,19 @@ function home() {
   const W = h(`<div class="wrap"></div>`); app.append(W);
   W.append(topbar());
   W.append(h(`<h1 class="hello">שלום ${esc(nm())}, מה תרצי ללמוד?</h1>`));
+  if (S.newGrade) { S.newGrade = false; save(); setTimeout(() => { confetti(); toast(`🎒 עלית לכיתה ${GRADES[S.profile.grade - 1]}!`, 3500); }, 300); }
+  if (isSummer()) W.append(h(`<p class="sub">☀️ חופש גדול! תוכנית קיץ קלה וכיפית שחוזרת על כל מה שלמדת השנה 🏖️</p>`));
+  const day = new Date().getDay();
+  if (day === 5 || day === 6) { const ps = parshaFor(); const pc = h(`<button class="story-card shabbat" type="button"><span>🕯️</span><span><b>${ps.name ? 'פרשת ' + ps.name : 'שבת חג'}</b><small>${ps.name ? 'שבת שלום! סיפור על פרשת השבוע' : 'השבת יש חג – חג שמח!'}</small></span></button>`); if (ps.name) pc.onclick = () => go('parsha', ps.name); W.append(pc); }
   const pups = h(`<div class="pups"></div>`);
   for (const [k, s] of Object.entries(SUBJECTS)) {
-    const b = h(`<button class="pup" type="button">${puppySVG(k, S.worn[k])}<span class="t"><b>${s.name}</b><small>שלב ${S.subj[k].stage}</small></span></button>`);
+    const b = h(`<button class="pup" type="button">${puppySVG(k, S.worn[k])}<span class="t"><b>${kidName(k)}</b><small>שלב ${S.subj[k].stage}</small></span></button>`);
     b.onclick = () => go('map', k); pups.append(b);
   }
   W.append(pups);
   const st = h(`<button class="story-card" type="button"><span>📖</span><span><b>סיפור עם כלבלבי</b><small>קוראים ביחד ועונים על שאלות</small></span></button>`);
   st.onclick = () => go('story'); W.append(st);
-  const dad = h(`<button class="back" type="button" style="align-self:center">👨 מרכז הפיקוד של אבא</button>`);
+  const dad = h(`<button class="back" type="button" style="align-self:center">👨‍👩‍👧 מרכז הפיקוד של אבא / אמא</button>`);
   dad.onclick = async () => { if (await askPin()) go('command'); }; W.append(dad);
 }
 
@@ -87,7 +117,7 @@ const BONE = (fill, stroke) => `<svg viewBox="0 0 120 64" aria-hidden="true"><pa
 function map(subj) {
   const sj = S.subj[subj], W = h(`<div class="wrap"></div>`); app.append(W);
   W.append(topbar(() => go('home')));
-  W.append(h(`<div class="maphead"><h2>${SUBJECTS[subj].icon} ${SUBJECTS[subj].name}</h2></div>`));
+  W.append(h(`<div class="maphead"><h2>${SUBJECTS[subj].icon} ${kidName(subj)}${isSummer() ? ' · ☀️ קיץ' : ''}</h2></div>`));
   const total = Math.max(sj.stage + 6, 12), gapY = 112, height = total * gapY + 120;
   const M = h(`<div class="map" style="height:${height}px"></div>`);
   const pts = []; for (let i = 0; i < total; i++) { const y = height - 80 - i * gapY, x = 50 + Math.sin(i * 0.95) * 30; pts.push([x, y]); }
@@ -114,17 +144,17 @@ function task(subj) {
   const helpBox = h(`<div class="helper" hidden><div class="pupmini">${puppySVG(subj, S.worn[subj])}</div><div class="bubble"></div></div>`);
   const helpBtn = h(`<button class="helpbtn" type="button" hidden>🐶 כלבלבי</button>`);
   helpBtn.onclick = () => explain(q, helpBox);
-  T.append(h(`<p class="q ${q.ltr && /^[\d\s+\-×=?]+$/.test(q.prompt) ? 'ltr' : ''}">${esc(q.prompt)}</p>`));
+  T.append(h(`<p class="q ${q.ltr && !/[\u0590-\u05FF]/.test(q.prompt) ? 'ltr' : ''}">${esc(q.prompt)}</p>`));
   if (q.emoji) T.append(h(`<p class="emoji">${q.emoji}</p>`));
   if (q.big) T.append(h(`<p class="big ${/[A-Za-z]/.test(q.big) || q.ltr ? 'ltr' : ''}">${esc(q.big)}</p>`));
   if (q.speak) { const sb = h(`<button class="btn soft" type="button" style="align-self:center">🔊 הקשיבי</button>`); sb.onclick = () => say(q.speak.text, q.speak.lang); T.append(sb); setTimeout(() => say(q.speak.text, q.speak.lang), 400); }
   const done = (ok) => {
     const first = tries === 0; tries++;
-    if (!ok) { fb.className = 'feedback bad'; fb.textContent = pick(['כמעט! נסי שוב 💜', 'לא נורא, עוד ניסיון!', 'אופס, נסי שוב']); helpBtn.hidden = false; if (tries === 1) record(subj, q.topic, false, true); return false; }
+    if (!ok) { fb.className = 'feedback bad'; fb.textContent = G(pick(['כמעט! נסי שוב 💜', 'לא נורא, עוד ניסיון!', 'אופס, נסי שוב'])); helpBtn.hidden = false; if (tries === 1) record(subj, q.topic, false, true); return false; }
     if (solved) return true; solved = true;
     const r = first ? record(subj, q.topic, true, true) : record(subj, q.topic, true, false);
     const msg = `כל הכבוד ${nm()}, אני גאה בך! קחי עצם 🦴`;
-    fb.className = 'feedback ok'; fb.textContent = msg; say(msg.replace('🦴', ''));
+    fb.className = 'feedback ok'; fb.textContent = G(msg); say(msg.replace('🦴', ''));
     helpBtn.hidden = true;
     const next = h(`<button class="btn big" type="button" style="align-self:center">הבא ←</button>`);
     next.onclick = () => (r.star ? starParty(subj) : go('task', subj)); T.append(next); next.focus();
@@ -217,7 +247,7 @@ function confetti() {
     if (t < 170) requestAnimationFrame(step); else c.remove(); };
   step();
 }
-function toast(html, ms = 2200) { const t = h(`<div class="toast" role="status">${html}</div>`); document.body.append(t); setTimeout(() => t.remove(), ms); }
+function toast(html, ms = 2200) { const t = h(`<div class="toast" role="status">${G(html)}</div>`); document.body.append(t); setTimeout(() => t.remove(), ms); }
 
 // ---------------------------------------------------------------- story with כלבלבי
 function story(idx) {
@@ -253,17 +283,36 @@ function story(idx) {
   showLine();
 }
 
+// ---------------------------------------------------------------- weekly Torah portion (Friday / Shabbat), length by grade
+function parsha(name) {
+  const W = h(`<div class="wrap"></div>`); app.append(W); W.append(topbar(() => go('home')));
+  const lines = parshaStory(name, S.profile.grade); let i = 0;
+  const T = h(`<section class="task"><div class="prog"><i style="width:0%"></i></div><p class="q">🕯️ פרשת ${esc(name)}</p></section>`); W.append(T);
+  const helper = h(`<div class="helper"><div class="pupmini">${puppySVG('he', S.worn.he)}</div><div class="bubble">שבת שלום! בואי נקרא ביחד את הסיפור של הפרשה 💜</div></div>`);
+  const area = h(`<div style="display:flex;flex-direction:column;gap:14px"></div>`); T.append(area, helper);
+  const show = () => {
+    area.replaceChildren(); T.querySelector('.prog i').style.width = (i / lines.length) * 100 + '%';
+    if (i >= lines.length) { if (!S.parsha.includes(name + S.schoolYear)) S.parsha.push(name + S.schoolYear); save(); confetti(); helper.querySelector('.bubble').textContent = G(`סיימת את הסיפור של פרשת ${name}! שבת שלום 🕯️`); say(`כל הכבוד ${nm()}! סיימת את הסיפור. שבת שלום!`); const b = h(`<button class="btn big" type="button" style="align-self:center">לדף הבית ←</button>`); b.onclick = () => go('home'); area.append(b); return; }
+    area.append(h(`<p class="big" style="font-size:clamp(24px,6.5vw,38px);line-height:1.45">${esc(lines[i])}</p>`));
+    const fb = h(`<p class="feedback"></p>`);
+    readTask(lines[i], area, (ok) => { if (!ok) { fb.className = 'feedback bad'; fb.textContent = G('נסי שוב, לאט 💜'); return; }
+      S.bones++; save(); const m = `כל הכבוד ${nm()}! קחי עצם`; helper.querySelector('.bubble').textContent = G(m + ' 🦴'); say(m); i++; setTimeout(show, 1100); });
+    area.append(fb);
+  };
+  show();
+}
+
 // ---------------------------------------------------------------- shop: ⭐ dad's store + 🦴 bone shop
 function shop(tab = 'bones', who = 'math') {
   const W = h(`<div class="wrap"></div>`); app.append(W); W.append(topbar(() => go('home')));
-  const tabs = h(`<div class="tabs" role="tablist"><button role="tab" type="button" data-t="bones" aria-selected="${tab === 'bones'}">🦴 חנות העצמות</button><button role="tab" type="button" data-t="stars" aria-selected="${tab === 'stars'}">⭐ החנות של אבא</button></div>`);
+  const tabs = h(`<div class="tabs" role="tablist"><button role="tab" type="button" data-t="bones" aria-selected="${tab === 'bones'}">🦴 חנות העצמות</button><button role="tab" type="button" data-t="stars" aria-selected="${tab === 'stars'}">⭐ החנות של אבא / אמא</button></div>`);
   tabs.querySelectorAll('button').forEach((b) => b.onclick = () => go('shop', b.dataset.t, who)); W.append(tabs);
   if (tab === 'stars') {
-    const P = h(`<section class="panel"><p class="stars-big">⭐ ${S.stars}<small>כוכבים לפנק עליהם</small></p><p style="text-align:center;margin:0">כל כוכב הוא כמו מטבע. אבא מחליט במה לפנק! 💜</p><button class="btn big" type="button" style="align-self:center">👨 אבא שילם</button></section>`);
+    const P = h(`<section class="panel"><p class="stars-big">⭐ ${S.stars}<small>כוכבים לפנק עליהם</small></p><p style="text-align:center;margin:0">כל כוכב הוא כמו מטבע. אבא / אמא מחליטים במה לפנק! 💜</p><button class="btn big" type="button" style="align-self:center">💳 אבא / אמא שילמו</button></section>`);
     P.querySelector('button').onclick = async () => { if (await askPin()) dadPay(); }; W.append(P); return;
   }
-  const P = h(`<section class="panel"><div class="pick-pup">${Object.keys(SUBJECTS).map((k) => `<button type="button" data-k="${k}" aria-pressed="${k === who}" aria-label="${SUBJECTS[k].name}">${puppySVG(k, S.worn[k])}</button>`).join('')}</div>
-    <div class="dress">${puppySVG(who, S.worn[who])}</div><p style="text-align:center;margin:0">מאכילים את ${SUBJECTS[who].name} בעצמות – והוא מקבל פריט! יש לך 🦴 ${S.bones}</p><div class="items"></div></section>`);
+  const P = h(`<section class="panel"><div class="pick-pup">${Object.keys(SUBJECTS).map((k) => `<button type="button" data-k="${k}" aria-pressed="${k === who}" aria-label="${kidName(k)}">${puppySVG(k, S.worn[k])}</button>`).join('')}</div>
+    <div class="dress">${puppySVG(who, S.worn[who])}</div><p style="text-align:center;margin:0">מאכילים את ${kidName(who)} בעצמות – ומקבלים פריט! יש לך 🦴 ${S.bones}</p><div class="items"></div></section>`);
   P.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => go('shop', 'bones', b.dataset.k));
   const box = P.querySelector('.items');
   for (const it of ITEMS) {
@@ -292,10 +341,10 @@ function pinPad(title) {
     document.body.append(m); m.querySelector('.keys button').focus();
   });
 }
-async function askPin() { const p = await pinPad('סיסמת אבא'); if (!p) return false; if ((await hashPin(p)) === S.pinHash) return true; toast('סיסמה לא נכונה'); return false; }
+async function askPin() { const p = await pinPad('סיסמת אבא / אמא'); if (!p) return false; if ((await hashPin(p)) === S.pinHash) return true; toast('סיסמה לא נכונה'); return false; }
 
 function dadPay() {
-  let n = 1; const m = h(`<div class="modal"><div class="box"><h3>👨 אבא שילם</h3><p style="text-align:center;margin:0">יש ${S.stars} ⭐. כמה כוכבים להוריד?</p><div class="starrow"><button type="button" data-m>−</button><b style="font-size:40px" id="pn">1</b><button type="button" data-p>+</button></div><div class="row"><button class="btn" type="button" data-ok>הורד ⭐</button><button class="btn soft" type="button" data-c>ביטול</button></div></div></div>`);
+  let n = 1; const m = h(`<div class="modal"><div class="box"><h3>💳 אבא / אמא שילמו</h3><p style="text-align:center;margin:0">יש ${S.stars} ⭐. כמה כוכבים להוריד?</p><div class="starrow"><button type="button" data-m>−</button><b style="font-size:40px" id="pn">1</b><button type="button" data-p>+</button></div><div class="row"><button class="btn" type="button" data-ok>הורד ⭐</button><button class="btn soft" type="button" data-c>ביטול</button></div></div></div>`);
   const upd = () => (m.querySelector('#pn').textContent = n);
   m.querySelector('[data-m]').onclick = () => { n = Math.max(1, n - 1); upd(); }; m.querySelector('[data-p]').onclick = () => { n = Math.min(S.stars, n + 1); upd(); };
   m.querySelector('[data-c]').onclick = () => m.remove();
@@ -306,31 +355,37 @@ function dadPay() {
 // ---------------------------------------------------------------- dad's command center (on her device)
 function command() {
   const W = h(`<div class="wrap cc"></div>`); app.append(W);
-  W.append(h(`<div class="bar"><button class="back" type="button">→ יציאה</button><span class="sp"></span><b>👨 מרכז הפיקוד של אבא</b></div>`));
+  W.append(h(`<div class="bar"><button class="back" type="button">→ יציאה</button><span class="sp"></span><b>👨‍👩‍👧 מרכז הפיקוד של אבא / אמא</b></div>`));
   W.querySelector('.back').onclick = () => go('home');
   const R = report();
-  const P = h(`<section class="panel"><h2>📊 איך ${esc(nm())} מתקדמת</h2><canvas class="chart" aria-label="גרף הצלחה לפי מקצוע"></canvas>
+  const P = h(`<section class="panel"><h2>📊 איך ${esc(nm())} מתקדמת · כיתה ${GRADES[S.profile.grade - 1]}${isSummer() ? ' · ☀️ קיץ' : ''}</h2><canvas class="chart" aria-label="גרף הצלחה לפי מקצוע"></canvas>
     <div class="legend"><span><i style="background:var(--he)"></i>עברית</span><span><i style="background:var(--math)"></i>מתמטיקה</span><span><i style="background:var(--en)"></i>אנגלית</span></div><div class="subjs" style="display:flex;flex-direction:column;gap:10px"></div></section>`);
   W.append(P); drawChart(P.querySelector('canvas'), R);
   subjCards(P.querySelector('.subjs'), R);
   const days = Object.keys(S.days).filter((d) => Date.now() - new Date(d) < 7 * 864e5).length;
   P.append(h(`<p style="margin:0">⭐ כוכבים עכשיו: <b>${S.stars}</b> · נאספו בסה״כ: <b>${S.starsEver}</b> · 🦴 ${S.bones} · ימי לימוד השבוע: <b>${days}</b></p>`));
   // stars + weekly focus
-  const C = h(`<section class="panel"><h2>⭐ כוכבים</h2><div class="row"><button class="btn" type="button" data-pay>אבא שילם (הורדת כוכבים)</button><button class="btn soft" type="button" data-gift>+1 ⭐ מתנה</button></div>
-    <h2>🎯 משימה של אבא לשבוע</h2><p style="margin:0">השאלות יתמקדו בנושא שתבחר.</p><select id="focus"><option value="">בלי – האלגוריתם מחליט לבד</option>${Object.entries(TOPICS).map(([s, t]) => `<optgroup label="${SUBJECTS[s].short}">${Object.entries(t).map(([k, n]) => `<option value="${s}.${k}">${n}</option>`).join('')}</optgroup>`).join('')}</select></section>`);
+  const C = h(`<section class="panel"><h2>⭐ כוכבים</h2><div class="row"><button class="btn" type="button" data-pay>💳 אבא / אמא שילמו (הורדת כוכבים)</button><button class="btn soft" type="button" data-gift>+1 ⭐ מתנה</button></div>
+    <h2>🎯 משימה של אבא / אמא לשבוע</h2><p style="margin:0">השאלות יתמקדו בנושא שתבחר.</p><select id="focus"><option value="">בלי – האלגוריתם מחליט לבד</option>${Object.entries(TOPICS).map(([s, t]) => `<optgroup label="${SUBJECTS[s].short}">${Object.entries(t).map(([k, n]) => `<option value="${s}.${k}">${n}</option>`).join('')}</optgroup>`).join('')}</select></section>`);
   C.querySelector('[data-pay]').onclick = dadPay;
   C.querySelector('[data-gift]').onclick = () => { S.stars++; S.starsEver++; save(); toast('+1 ⭐'); go('command'); };
   const sel = C.querySelector('#focus'); sel.value = S.focus || ''; sel.onchange = () => { S.focus = sel.value || null; save(); toast(sel.value ? 'נשמר! 🎯' : 'בוטל'); };
   W.append(C);
   // send to dad's phone
-  const Q = h(`<section class="panel"><h2>📱 לראות בטלפון של אבא</h2><p style="margin:0">פותחים בטלפון של אבא את <b>דף הפיקוד</b> וסורקים את הקוד. בלי שרת – הנתונים עוברים ישר.</p><div id="qr" style="display:flex;justify-content:center"></div>
+  const Q = h(`<section class="panel"><h2>📱 לראות בטלפון של אבא / אמא</h2><p style="margin:0">פותחים בטלפון של ההורה את <b>דף הפיקוד</b> וסורקים את הקוד. בלי שרת – הנתונים עוברים ישר.</p><div id="qr" style="display:flex;justify-content:center"></div>
     <p style="margin:0;text-align:center;direction:ltr"><a href="dad.html" target="_blank" rel="noopener">dad.html – דף הפיקוד</a></p><details><summary>קוד טקסט (אם אין מצלמה)</summary><textarea readonly style="width:100%;height:90px;direction:ltr" id="codeTxt"></textarea><button class="btn soft" type="button" data-cp>העתק</button></details>
-    <h2>🔐 החלפת סיסמה</h2><button class="btn soft" type="button" data-pin>החלף סיסמה</button></section>`);
+    <h2>🔐 החלפת סיסמה</h2><button class="btn soft" type="button" data-pin>החלף סיסמה</button><h2>🔄 איפוס חשבון</h2><p style="margin:0">מוחק הכול – כוכבים, עצמות, התקדמות והגדרות – ויוצרים חשבון חדש.</p><button class="btn pink" type="button" data-reset>איפוס חשבון</button></section>`);
   const code = exportCode();
   try { const qr = qrcode(0, 'L'); qr.addData(code); qr.make(); Q.querySelector('#qr').innerHTML = qr.createImgTag(6, 12); Q.querySelector('#qr img').alt = 'קוד QR עם הדוח'; } catch { Q.querySelector('#qr').textContent = 'לא הצלחתי ליצור QR – השתמש בקוד הטקסט.'; }
   Q.querySelector('#codeTxt').value = code;
   Q.querySelector('[data-cp]').onclick = (e) => navigator.clipboard?.writeText(code).then(() => (e.target.textContent = 'הועתק ✓'), () => Q.querySelector('#codeTxt').select());
   Q.querySelector('[data-pin]').onclick = async () => { const p1 = await pinPad('סיסמה חדשה'); if (!p1) return; const p2 = await pinPad('שוב, לאישור'); if (p1 !== p2) { toast('לא תואם'); return; } S.pinHash = await hashPin(p1); save(); toast('הסיסמה הוחלפה ✓'); };
+  Q.querySelector('[data-reset]').onclick = () => {
+    const m = h(`<div class="modal"><div class="box"><h3>🔄 לאפס את החשבון?</h3><p style="text-align:center;margin:0">כל הכוכבים, העצמות, ההתקדמות והבגדים יימחקו. אי אפשר לבטל.</p><p style="text-align:center;margin:0">כדי לאשר, כתבו <b>אפס</b>:</p><input type="text" id="rst" style="height:52px;border-radius:14px;border:3px solid var(--lilac);font:800 22px var(--title);text-align:center"><div class="row"><button class="btn pink" type="button" data-y>מחק הכול</button><button class="btn soft" type="button" data-n>ביטול</button></div></div></div>`);
+    m.querySelector('[data-n]').onclick = () => m.remove();
+    m.querySelector('[data-y]').onclick = () => { if (m.querySelector('#rst').value.trim() !== 'אפס') { toast('צריך לכתוב "אפס"'); return; } m.remove(); resetAll(); applyLook(); go('onboard', 0); };
+    document.body.append(m); m.querySelector('#rst').focus();
+  };
   W.append(Q);
 }
 export function subjCards(box, R) {

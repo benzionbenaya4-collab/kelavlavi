@@ -132,3 +132,9 @@ select { height: 48px; border-radius: 14px; border: 3px solid var(--lilac); font
 .toast { position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); background: #fff; border-radius: 22px; padding: 14px 22px; font: 800 22px var(--title); box-shadow: 0 14px 40px rgba(40,15,80,.25); z-index: 31; text-align: center; animation: drop .4s ease-out; max-width: 92vw; }
 @keyframes drop { from { transform: translate(-50%, -30px); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+.swatches { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; } .swatches button { width: 44px; height: 44px; border-radius: 50%; border: 4px solid #fff; box-shadow: 0 0 0 2px var(--lilac); }
+.swatches button[aria-pressed=true] { box-shadow: 0 0 0 4px var(--ink); }
+.animals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; max-width: 440px; } .animals button { border: 3px solid var(--lilac); border-radius: 18px; background: #fbf8ff; padding: 4px; font: 800 15px var(--title); }
+.animals button[aria-pressed=true] { border-color: var(--purple); background: #efe3ff; } .animals .art svg { width: 100%; height: auto; display: block; }
+.onb label { display: flex; gap: 10px; align-items: center; }
+.story-card.shabbat { background: linear-gradient(135deg, #fff8e1, #ffe9b0); }
