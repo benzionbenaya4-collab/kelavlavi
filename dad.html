@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>כלבלבי – פיקוד</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#8b4ff0">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Varela+Round&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <style>video{width:100%;max-width:420px;border-radius:20px;background:#000;align-self:center}</style>
+</head>
+<body>
+  <main class="wrap cc">
+    <div class="bar"><b style="font-size:22px">👨 מרכז הפיקוד של אבא</b><span class="sp"></span><a class="back" href="./">🐶 לכלבלבי</a></div>
+    <section class="panel" id="scan">
+      <h2>📷 סריקת הדוח</h2>
+      <p style="margin:0">במכשיר של הילדה: 🐶 ← "מרכז הפיקוד של אבא" ← סיסמה ← גוללים ל־"לראות בטלפון של אבא". סורקים כאן את הקוד.</p>
+      <button class="btn big" type="button" id="cam">📷 פתח מצלמה וסרוק</button>
+      <video id="v" playsinline muted hidden></video>
+      <p class="err" id="err"></p>
+      <details><summary>או הדבק קוד טקסט</summary><textarea id="paste" style="width:100%;height:90px;direction:ltr"></textarea><button class="btn soft" type="button" id="load">הצג דוח</button></details>
+    </section>
+    <section class="panel" id="rep" hidden>
+      <h2>📊 הדוח</h2><p style="margin:0" id="when"></p>
+      <canvas class="chart" aria-label="גרף הצלחה לפי מקצוע"></canvas>
+      <div class="legend"><span><i style="background:var(--he)"></i>עברית</span><span><i style="background:var(--math)"></i>מתמטיקה</span><span><i style="background:var(--en)"></i>אנגלית</span></div>
+      <div class="subjs" style="display:flex;flex-direction:column;gap:10px"></div>
+      <p style="margin:0" id="sum"></p>
+      <p style="margin:0;color:var(--muted)">כדי להוריד כוכבים או לבחור משימה לשבוע – עושים את זה במכשיר שלה (שם נשמרים הנתונים).</p>
+    </section>
+  </main>
+  <script type="module">
+    import { importCode, report } from './js/store.js';
+    import { drawChart } from './js/report.js';
+    import { SUBJECTS } from './js/data.js';
+    const $ = (s) => document.querySelector(s);
+    try { const saved = localStorage.getItem('klv.dad'); if (saved) show(saved, true); } catch {}
+    function show(code, quiet) {
+      const st = importCode(code); if (!st) { if (!quiet) $('#err').textContent = 'הקוד לא תקין – נסה שוב.'; return; }
+      try { localStorage.setItem('klv.dad', code); } catch {}
+      $('#rep').hidden = false; const R = report(st);
+      $('#when').textContent = 'עודכן: ' + new Date(st.t).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
+      drawChart($('#rep canvas'), R);
+      const box = $('#rep .subjs'); box.replaceChildren();
+      for (const [k, s] of Object.entries(SUBJECTS)) { const r = R[k]; const d = document.createElement('div'); d.className = 'subj'; d.style.setProperty('--c', `var(--${k})`);
+        d.innerHTML = `<b>${s.short}</b> · רמה ${r.lvl} · שלב ${r.stage}${r.acc != null ? ` · ${Math.round(r.acc * 100)}% הצלחה` : ''}<p>💪 הכי טובה ב: ${r.best.map((x) => x.name).join(', ') || '—'}</p><p>🎯 דרוש תרגול: ${r.need.map((x) => `${x.name} (${Math.round(x.a * 100)}%)`).join(', ') || (r.answered ? 'הכול נראה טוב! 👏' : '—')}</p>`; box.append(d); }
+      $('#sum').innerHTML = `⭐ כוכבים עכשיו: <b>${st.stars}</b> · נאספו בסה״כ: <b>${st.starsEver}</b> · 🦴 ${st.bones} · ימי לימוד השבוע: <b>${st.week ?? '—'}</b>`;
+      $('#rep').scrollIntoView({ behavior: 'smooth' });
+    }
+    $('#load').onclick = () => show($('#paste').value.trim());
+    $('#cam').onclick = async () => {
+      $('#err').textContent = '';
+      if (!('BarcodeDetector' in window)) { $('#err').textContent = 'הדפדפן הזה לא יודע לסרוק. השתמש ב"הדבק קוד טקסט" (Chrome באנדרואיד יודע לסרוק).'; return; }
+      let stream; try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); } catch { $('#err').textContent = 'אין גישה למצלמה – צריך לאשר בהגדרות הדפדפן.'; return; }
+      const v = $('#v'); v.srcObject = stream; v.hidden = false; await v.play();
+      const det = new BarcodeDetector({ formats: ['qr_code'] }), t0 = Date.now();
+      const loop = async () => { try { const r = await det.detect(v); const c = r.find((x) => x.rawValue.startsWith('KLV1:')); if (c) { stream.getTracks().forEach((t) => t.stop()); v.hidden = true; show(c.rawValue); return; } } catch {}
+        if (Date.now() - t0 > 60000) { stream.getTracks().forEach((t) => t.stop()); v.hidden = true; $('#err').textContent = 'לא מצאתי קוד. נסה שוב.'; return; } requestAnimationFrame(loop); };
+      loop();
+    };
+  </script>
+</body>
+</html>
