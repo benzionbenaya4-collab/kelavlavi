@@ -1,0 +1,19 @@
+{
+  "name": "כלבלבי",
+  "short_name": "כלבלבי",
+  "description": "לומדים חשבון, אנגלית ועברית עם גורים פרוותיים",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "lang": "he",
+  "dir": "rtl",
+  "background_color": "#eef5ff",
+  "theme_color": "#3d8bff",
+  "icons": [
+    { "src": "icons/icon-boy-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-boy-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-boy.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

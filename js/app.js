@@ -14,7 +14,14 @@ const MASC = [['אני קוראת', 'אני קורא'], ['איך קוראים ל
   ['סדרי', 'סדר'], ['הקשיבי', 'הקשב'], ['בחרי', 'בחר'], ['נסי', 'נסה'], ['קחי', 'קח'], ['תרצי', 'תרצה'], ['עגלי', 'עגל'], ['לחצי', 'לחץ'], ['חמודה', 'חמוד'], ['מוכנה', 'מוכן'], ['אלחץ', 'אלחץ']];
 const G = (t) => { if (S.profile?.gender !== 'm') return t; let x = String(t); for (const [f, m] of MASC) x = x.replace(new RegExp(`(^|[^\\u05D0-\\u05EA])${f}(?=$|[^\\u05D0-\\u05EA])`, 'g'), `$1${m}`); return x; };
 const h = (html) => { const t = document.createElement('template'); t.innerHTML = G(html.trim()); return t.content.firstElementChild; };
-function applyLook() { const c = COLORS[S.profile.color] || COLORS.purple; setLook(S.profile.color, S.profile.animal); document.documentElement.style.setProperty('--purple', c.accent); document.documentElement.style.setProperty('--purple-d', c.dark); document.querySelector('meta[name=theme-color]')?.setAttribute('content', c.accent); }
+function applyLook() { const c = COLORS[S.profile.color] || COLORS.purple; setLook(S.profile.color, S.profile.animal); document.documentElement.style.setProperty('--purple', c.accent); document.documentElement.style.setProperty('--purple-d', c.dark); document.querySelector('meta[name=theme-color]')?.setAttribute('content', c.accent); setInstallIcon(); }
+// boys install a blue puppy with a hero cape, girls the pink puppy with the bow
+function setInstallIcon() {
+  const boy = S.profile?.gender === 'm', q = (s) => document.querySelector(s);
+  q('link[rel=manifest]')?.setAttribute('href', boy ? 'manifest-boy.webmanifest' : 'manifest.webmanifest');
+  q('link[rel=apple-touch-icon]')?.setAttribute('href', boy ? 'icons/icon-boy-192.png' : 'icons/icon-192.png');
+  q('link[rel=icon]')?.setAttribute('href', boy ? 'icons/icon-boy.svg' : 'icons/icon.svg');
+}
 const kidName = (k) => `${ANIMALS[S.profile.animal].kid} ${SUBJECTS[k].name}`;
 applyLook();
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -64,7 +71,7 @@ function onboard(step = 0) {
     const i = c.querySelector('#kidname'); i.value = S.name; c.querySelector('#grade').value = P.grade;
     const refresh = () => { save(); go('onboard', 3); setTimeout(() => { const n = $('#kidname'); if (n) n.value = S.name; }, 0); };
     i.oninput = () => (S.name = i.value.trim());
-    c.querySelectorAll('[data-g]').forEach((b) => b.onclick = () => { P.gender = b.dataset.g; refresh(); });
+    c.querySelectorAll('[data-g]').forEach((b) => b.onclick = () => { P.gender = b.dataset.g; setInstallIcon(); refresh(); });
     c.querySelector('#grade').onchange = (e) => { P.grade = +e.target.value; save(); };
     c.querySelectorAll('[data-c]').forEach((b) => b.onclick = () => { P.color = b.dataset.c; applyLook(); refresh(); });
     c.querySelectorAll('[data-a]').forEach((b) => b.onclick = () => { P.animal = b.dataset.a; applyLook(); refresh(); });
