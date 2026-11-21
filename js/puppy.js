@@ -37,13 +37,14 @@ export function puppySVG(kind, worn = [], opts = {}) {
   s += fluff(100, 146, 22, 9, L.patch);
   s += fluff(74, 176, 13, 7, L.fur) + fluff(126, 176, 13, 7, L.fur);
   s += `<circle cx="70" cy="181" r="2.4" fill="${L.dark}"/><circle cx="78" cy="181" r="2.4" fill="${L.dark}"/><circle cx="122" cy="181" r="2.4" fill="${L.dark}"/><circle cx="130" cy="181" r="2.4" fill="${L.dark}"/>`;
-  if (W('collar')) s += `<path d="M66 108 Q100 126 134 108" stroke="#ff4fa3" stroke-width="9" fill="none" stroke-linecap="round"/><circle cx="100" cy="122" r="7" fill="#ffd23f" stroke="#c98a00" stroke-width="2"/>`;
-  if (W('scarf')) s += `<path d="M62 106 Q100 130 138 106" stroke="#3ddc84" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M118 116 l10 30 l-14 -2 z" fill="#2fbf71"/>`;
   // ears (floppy) + head
   s += `<g class="ear l">${fluff(52, 72, 18, 8, L.dark)}${fluff(46, 96, 14, 7, L.dark)}</g>`;
   s += `<g class="ear r">${fluff(148, 72, 18, 8, L.dark)}${fluff(154, 96, 14, 7, L.dark)}</g>`;
   s += fluff(100, 78, 46, 16, L.fur);
   s += fluff(100, 94, 22, 9, L.patch);
+  // neck items go on top of the head's fluff so they are always visible
+  if (W('scarf')) s += `<path d="M64 122 Q100 142 136 122" stroke="#3ddc84" stroke-width="13" fill="none" stroke-linecap="round"/><path d="M116 132 l12 30 l-15 -1 z" fill="#2fbf71" stroke="#1f9a59" stroke-width="1.5"/>`;
+  if (W('collar')) s += `<path d="M68 124 Q100 140 132 124" stroke="#ff4fa3" stroke-width="8" fill="none" stroke-linecap="round"/><circle cx="100" cy="137" r="7.5" fill="#ffd23f" stroke="#c98a00" stroke-width="2"/><circle cx="100" cy="137" r="2" fill="#c98a00"/>`;
   // eyes
   s += `<g class="eyes"><circle cx="82" cy="74" r="8.5" fill="#2a1446"/><circle cx="118" cy="74" r="8.5" fill="#2a1446"/><circle cx="85" cy="71" r="3" fill="#fff"/><circle cx="121" cy="71" r="3" fill="#fff"/></g>`;
   s += `<circle cx="70" cy="90" r="6" fill="#ff9fcf" opacity=".55"/><circle cx="130" cy="90" r="6" fill="#ff9fcf" opacity=".55"/>`;
