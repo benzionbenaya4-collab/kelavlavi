@@ -1,5 +1,5 @@
 // כלבלבי – works offline after the first visit. Newest files first, saved copy when offline.
-const CACHE = 'klv-v1';
+const CACHE = 'klv-v2';
 const SHELL = ['./', 'index.html', 'dad.html', 'manifest.webmanifest', 'css/style.css', 'js/app.js', 'js/data.js', 'js/store.js', 'js/puppy.js', 'js/speech.js', 'js/report.js',
   'vendor/qrcode.js', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', (e) => e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting())));

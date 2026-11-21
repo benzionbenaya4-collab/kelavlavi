@@ -48,8 +48,8 @@ export function puppySVG(kind, worn = [], opts = {}) {
   s += `<g class="eyes"><circle cx="82" cy="74" r="8.5" fill="#2a1446"/><circle cx="118" cy="74" r="8.5" fill="#2a1446"/><circle cx="85" cy="71" r="3" fill="#fff"/><circle cx="121" cy="71" r="3" fill="#fff"/></g>`;
   s += `<circle cx="70" cy="90" r="6" fill="#ff9fcf" opacity=".55"/><circle cx="130" cy="90" r="6" fill="#ff9fcf" opacity=".55"/>`;
   // nose + mouth + tongue
-  s += `<ellipse cx="100" cy="88" rx="7" ry="5.5" fill="#2a1446"/><path d="M100 93 Q93 101 86 97 M100 93 Q107 101 114 97" stroke="#2a1446" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
-  s += `<path d="M95 99 Q100 112 105 99 Z" fill="#ff6fa8"/>`;
+  s += `<ellipse cx="100" cy="88" rx="6.5" ry="5" fill="#2a1446"/><path d="M100 93 v3 M94 97 Q97 100.5 100 96.5 Q103 100.5 106 97" stroke="#2a1446" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+  s += `<path d="M97.5 99.5 Q100 106 102.5 99.5 Z" fill="#ff6fa8"/>`;
   if (W('glasses')) s += `<g fill="rgba(40,20,70,.85)" stroke="#111" stroke-width="2"><circle cx="82" cy="74" r="12"/><circle cx="118" cy="74" r="12"/></g><path d="M94 74 h12" stroke="#111" stroke-width="3"/>`;
   if (W('bow')) s += `<g transform="translate(130 42) rotate(18)"><path d="M0 0 l-16 -10 v20 z M0 0 l16 -10 v20 z" fill="#ff4fa3"/><circle r="5" fill="#ff8cc6"/></g>`;
   if (W('flower')) s += `<g transform="translate(68 40)">${[0, 72, 144, 216, 288].map((a) => `<circle cx="${(Math.cos(a * Math.PI / 180) * 7).toFixed(1)}" cy="${(Math.sin(a * Math.PI / 180) * 7).toFixed(1)}" r="6" fill="#ffb3d9"/>`).join('')}<circle r="4.5" fill="#ffd23f"/></g>`;

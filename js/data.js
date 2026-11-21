@@ -9,15 +9,16 @@ export const SUBJECTS = {
 };
 
 export const TOPICS = {
-  math: { add10: 'חיבור עד 10', add20: 'חיבור עד 20', sub20: 'חיסור עד 20', add100: 'חיבור עשרות עד 100', addc: 'חיבור עם המרה', subb: 'חיסור עם פריטה', mul: 'כפל (2, 5, 10)', word: 'בעיות מילוליות' },
+  math: { add10: 'חיבור עד 10', sub10: 'חיסור עד 10', add20: 'חיבור עד 20', sub20: 'חיסור עד 20', add100: 'חיבור עשרות עד 100', addc: 'חיבור עם המרה', subb: 'חיסור עם פריטה', mul: 'כפל (2, 5, 10)', word: 'בעיות מילוליות' },
   en: { letters: 'אותיות גדולות וקטנות', abc: 'סדר האותיות', words: 'מילים ותמונות', spell: 'כתיבת מילים', listen: 'הקשבה' },
   he: { first: 'אות ראשונה', missing: 'אות חסרה', words: 'מילה ותמונה', readw: 'קריאת מילים', sentence: 'השלמת משפט', write: 'כתיבת מילים' },
 };
 // which topics open at which level (level grows by 1 every 10 questions, silently)
 export const UNLOCK = {
-  math: [['add10', 1], ['add20', 1], ['sub20', 2], ['add100', 3], ['word', 3], ['addc', 4], ['subb', 5], ['mul', 6]],
-  en: [['letters', 1], ['words', 1], ['abc', 2], ['listen', 2], ['spell', 3]],
-  he: [['first', 1], ['words', 1], ['readw', 1], ['missing', 2], ['sentence', 3], ['write', 3]],
+  // start of 2nd grade = very easy: small numbers, short words, mostly multiple choice
+  math: [['add10', 1], ['sub10', 2], ['add20', 3], ['word', 4], ['sub20', 4], ['add100', 5], ['addc', 6], ['subb', 7], ['mul', 8]],
+  en: [['words', 1], ['listen', 1], ['letters', 2], ['abc', 3], ['spell', 4]],
+  he: [['first', 1], ['words', 1], ['readw', 1], ['missing', 3], ['sentence', 3], ['write', 4]],
 };
 
 const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -30,7 +31,8 @@ const NAMES_OBJ = [['עצמות', '🦴'], ['כדורים', '⚽'], ['עוגיו
 function mathQ(topic, lvl) {
   let a, b, op = '+', ans, help;
   switch (topic) {
-    case 'add10': a = R(1, 6); b = R(1, 10 - a); ans = a + b; help = [`מתחילים מ־${a}.`, `סופרים קדימה ${b}: ${Array.from({ length: b }, (_, i) => a + i + 1).join(', ')}.`, `הגענו ל־${ans}!`]; break;
+    case 'sub10': a = R(3, lvl <= 2 ? 7 : 10); b = R(1, a - 1); op = '-'; ans = a - b; help = [`מתחילים מ־${a}.`, `סופרים אחורה ${b}: ${Array.from({ length: b }, (_, i) => a - i - 1).join(', ')}.`, `נשארנו עם ${ans}!`]; break;
+    case 'add10': a = R(1, lvl <= 1 ? 4 : 6); b = R(1, (lvl <= 1 ? 6 : 10) - a); ans = a + b; help = [`מתחילים מ־${a}.`, `סופרים קדימה ${b}: ${Array.from({ length: b }, (_, i) => a + i + 1).join(', ')}.`, `הגענו ל־${ans}!`]; break;
     case 'add20': a = R(4, 12); b = R(2, 20 - a); ans = a + b; help = a + b > 10 && a < 10 ? [`משלימים ל־10: ${a} + ${10 - a} = 10.`, `נשאר להוסיף ${b - (10 - a)}.`, `10 + ${b - (10 - a)} = ${ans}.`] : [`מתחילים מ־${a} וסופרים ${b} קדימה.`, `${a} + ${b} = ${ans}.`]; break;
     case 'sub20': a = R(8, 20); b = R(1, Math.min(9, a)); op = '-'; ans = a - b; help = [`מתחילים מ־${a}.`, `סופרים אחורה ${b}.`, `${a} - ${b} = ${ans}.`]; break;
     case 'add100': a = R(1, 6) * 10; b = R(1, 9 - a / 10) * 10; ans = a + b; help = [`${a} זה ${a / 10 === 1 ? 'עשרת אחת' : a / 10 + ' עשרות'}, ${b} זה ${b / 10 === 1 ? 'עשרת אחת' : b / 10 + ' עשרות'}.`, `${a / 10} + ${b / 10} = ${a / 10 + b / 10} עשרות.`, `כלומר ${ans}.`]; break;
@@ -43,8 +45,8 @@ function mathQ(topic, lvl) {
       if (sub) { ans = a - b; return { topic, type: pick(['choice', 'write']), prompt: `לגור היו ${a} ${w} ${e}. הוא נתן ${b} לחבר. כמה נשארו לו?`, answer: String(ans), options: numOpts(ans), help: [`היו ${a}, נתן ${b} – מורידים.`, `${a} - ${b} = ${ans}.`] }; }
       ans = a + b; return { topic, type: pick(['choice', 'write']), prompt: `לגור היו ${a} ${w} ${e}. הוא קיבל עוד ${b}. כמה יש לו עכשיו?`, answer: String(ans), options: numOpts(ans), help: [`היו ${a}, קיבל עוד ${b} – מוסיפים.`, `${a} + ${b} = ${ans}.`] }; }
   }
-  const type = lvl <= 1 ? 'choice' : Math.random() < 0.5 ? 'choice' : 'write';
-  return { topic, type, prompt: `${a} ${op} ${b} = ?`, ltr: true, answer: String(ans), options: numOpts(ans, topic === 'add10' ? 1 : 3), help };
+  const type = lvl <= 2 ? 'choice' : Math.random() < 0.5 ? 'choice' : 'write';
+  return { topic, type, prompt: `${a} ${op} ${b} = ?`, ltr: true, answer: String(ans), options: numOpts(ans, /10$/.test(topic) ? 1 : 3), help };
 }
 
 // ------------------------------------------------------------------ English
@@ -53,7 +55,7 @@ const EN = [['dog', '🐶', 'כלב'], ['cat', '🐱', 'חתול'], ['sun', '☀
   ['egg', '🥚', 'ביצה'], ['hat', '🎩', 'כובע'], ['bed', '🛏️', 'מיטה'], ['cup', '☕', 'כוס'], ['pen', '🖊️', 'עט'], ['milk', '🥛', 'חלב'], ['bus', '🚌', 'אוטובוס'], ['bee', '🐝', 'דבורה']];
 const ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 function enQ(topic, lvl) {
-  const short = EN.filter((w) => w[0].length <= (lvl < 3 ? 3 : 5));
+  const short = EN.filter((w) => w[0].length <= (lvl < 4 ? 3 : 5));
   switch (topic) {
     case 'letters': { const L = pick(ABC), others = shuffle(ABC.split('').filter((c) => c !== L)).slice(0, 3);
       return { topic, type: 'choice', prompt: `איזו אות קטנה מתאימה ל־${L}?`, big: L, answer: L.toLowerCase(), options: shuffle([L, ...others].map((c) => c.toLowerCase())), ltrOpts: true, help: [`האות הגדולה ${L}.`, `האות הקטנה שלה נראית ככה: ${L.toLowerCase()}.`] }; }
@@ -79,7 +81,7 @@ const SENT = [['הכלב ___ בחצר', 'רץ', ['ספר', 'כחול', 'מים']
   ['הציפור ___ בשמיים', 'עפה', ['שוחה', 'ספר', 'כיסא']], ['אבא ___ עוגה', 'אופה', ['טס', 'ירח', 'נעל']]];
 const READ = ['כלב קטן', 'שמש גדולה', 'הגור אוהב עצם', 'אני אוהבת ללמוד', 'החתול ישן', 'בית יפה', 'הכלב רץ מהר', 'יש לי כדור', 'הפרח אדום', 'אבא ואמא בבית'];
 function heQ(topic, lvl) {
-  const easy = HE.filter((w) => w[0].length <= (lvl < 3 ? 4 : 5));
+  const easy = HE.filter((w) => w[0].length <= (lvl < 2 ? 3 : lvl < 4 ? 4 : 5));
   switch (topic) {
     case 'first': { const w = pick(easy), L = w[0][0], others = shuffle(LETTERS.split('').filter((c) => c !== L)).slice(0, 3);
       return { topic, type: 'choice', prompt: `באיזו אות מתחילה המילה?`, emoji: w[1], answer: L, options: shuffle([L, ...others]), help: [`המילה היא "${w[0]}".`, `אומרים לאט: ${w[0]}… הצליל הראשון הוא ${L}.`] }; }
@@ -87,9 +89,9 @@ function heQ(topic, lvl) {
       if (lvl >= 3 && Math.random() < 0.5) return { topic, type: 'write', prompt: `השלימי את האות החסרה: ${shown} ${w[1]}`, answer: L, help: [`המילה היא "${w[0]}".`, `האות החסרה היא ${L}.`] };
       return { topic, type: 'choice', prompt: `איזו אות חסרה?`, big: `${shown} ${w[1]}`, answer: L, options: shuffle([L, ...shuffle(LETTERS.split('').filter((c) => c !== L)).slice(0, 3)]), help: [`המילה היא "${w[0]}".`, `האות החסרה היא ${L}.`] }; }
     case 'words': { const w = pick(easy), others = shuffle(HE.filter((x) => x !== w)).slice(0, 3);
-      if (Math.random() < 0.3) return { topic, type: 'match', prompt: 'התאימי כל מילה לתמונה', pairs: shuffle([w, ...others.slice(0, 2)]).map((x) => [x[0], x[1]]), answer: 'match', help: ['קראי כל מילה לאט ומצאי את התמונה שלה.'] };
+      if (lvl >= 2 && Math.random() < 0.3) return { topic, type: 'match', prompt: 'התאימי כל מילה לתמונה', pairs: shuffle([w, ...others.slice(0, 2)]).map((x) => [x[0], x[1]]), answer: 'match', help: ['קראי כל מילה לאט ומצאי את התמונה שלה.'] };
       return { topic, type: 'choice', prompt: 'איזו מילה מתאימה לתמונה?', emoji: w[1], answer: w[0], options: shuffle([w, ...others].map((x) => x[0])), help: [`בתמונה רואים ${w[1]}.`, `זו המילה "${w[0]}".`] }; }
-    case 'readw': { const s = lvl < 2 ? pick(HE)[0] : pick(READ);
+    case 'readw': { const s = lvl < 3 ? pick(easy)[0] : pick(READ);
       return { topic, type: 'read', prompt: 'קראי בקול:', big: s, answer: s, help: [`קוראים לאט, מילה אחרי מילה.`, `"${s}"`] }; }
     case 'sentence': { const [s, a, o] = pick(SENT);
       return { topic, type: 'choice', prompt: 'איזו מילה חסרה?', big: s, answer: a, options: shuffle([a, ...o]), help: [`קוראים את המשפט עם כל מילה ובודקים מה נשמע נכון.`, `"${s.replace('___', a)}".`] }; }
