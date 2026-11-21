@@ -3,7 +3,7 @@ import { SUBJECTS, TOPICS, STORIES, GRADES } from './data.js';
 import { S, save, hashPin, nextQ, record, report, exportCode, resetAll, startLevels, isSummer } from './store.js';
 import { parshaFor } from './parsha.js';
 import { parshaStory } from './parsha-stories.js';
-import { puppySVG, ITEMS, COLORS, ANIMALS, setLook } from './puppy.js';
+import { puppySVG, ITEMS, itemsFor, COLORS, ANIMALS, setLook } from './puppy.js';
 import { VOICES, speak, stopSpeak, setMuted, canListen, listen, similar } from './speech.js';
 import { drawChart } from './report.js';
 
@@ -315,7 +315,7 @@ function shop(tab = 'bones', who = 'math') {
     <div class="dress">${puppySVG(who, S.worn[who])}</div><p style="text-align:center;margin:0">מאכילים את ${kidName(who)} בעצמות – ומקבלים פריט! יש לך 🦴 ${S.bones}</p><div class="items"></div></section>`);
   P.querySelectorAll('[data-k]').forEach((b) => b.onclick = () => go('shop', 'bones', b.dataset.k));
   const box = P.querySelector('.items');
-  for (const it of ITEMS) {
+  for (const it of itemsFor(S.profile.gender)) {
     const own = S.owned[who].includes(it.id), on = S.worn[who].includes(it.id);
     const b = h(`<button class="item ${own ? 'own' : ''} ${on ? 'on' : ''}" type="button"><span class="i">${it.icon}</span>${it.name}<small>${own ? (on ? 'לובש ✓' : 'להלביש') : `🦴 ${it.cost}`}</small></button>`);
     b.onclick = () => {

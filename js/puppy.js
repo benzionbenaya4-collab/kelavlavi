@@ -8,7 +8,14 @@ export const ITEMS = [
   { id: 'flower', name: 'פרח', icon: '🌸', cost: 6 },
   { id: 'bed', name: 'מיטה', icon: '🛏️', cost: 20 },
   { id: 'crown', name: 'כתר', icon: '👑', cost: 30 },
+  { id: 'cap', name: 'כובע מצחייה', icon: '🧢', cost: 8, boy: true },
+  { id: 'ball', name: 'כדורגל', icon: '⚽', cost: 6, boy: true },
+  { id: 'headphones', name: 'אוזניות', icon: '🎧', cost: 14, boy: true },
+  { id: 'cape', name: 'גלימת גיבור', icon: '🦸', cost: 22, boy: true },
+  { id: 'tie', name: 'עניבה', icon: '👔', cost: 10, boy: true },
 ];
+// for boys the shop shows these first, and hides the bow and the flower
+export const itemsFor = (gender) => (gender === 'm' ? [...ITEMS.filter((i) => i.boy), ...ITEMS.filter((i) => !i.boy && !['bow', 'flower'].includes(i.id))] : ITEMS.filter((i) => !i.boy).concat(ITEMS.filter((i) => i.boy)));
 
 // favourite colours → fur palettes (three shades, one per subject)
 export const COLORS = {
@@ -39,6 +46,7 @@ export function puppySVG(kind, worn = [], opts = {}) {
   let s = `<svg viewBox="0 -24 200 224" role="img" aria-label="${ANIMALS[A].kid} פרוותי"${happy}>`;
   if (W('bed')) s += `<ellipse cx="100" cy="178" rx="88" ry="20" fill="#7a4fd6"/><ellipse cx="100" cy="172" rx="76" ry="15" fill="#f3e8ff"/>`;
   s += `<ellipse cx="100" cy="186" rx="58" ry="8" fill="rgba(60,20,110,.18)"/>`;
+  if (W('cape')) s += `<path d="M62 112 Q48 168 58 186 L142 186 Q152 168 138 112 Z" fill="#e5383b" stroke="#a4161a" stroke-width="2.5"/>`;
   // tail
   s += A === 'cat' ? `<path d="M140 160 Q178 150 168 112 Q164 100 156 108" stroke="${L.dark}" stroke-width="11" fill="none" stroke-linecap="round"/>` : A === 'bunny' ? fluff(146, 160, 11, 7, L.patch) : A === 'bear' ? '' : `<g class="tail">${fluff(152, 132, 12, 7, L.fur)}</g>`;
   // body + paws
@@ -64,10 +72,14 @@ export function puppySVG(kind, worn = [], opts = {}) {
   s += `<path d="M97.5 99.5 Q100 106 102.5 99.5 Z" fill="#ff6fa8"/>`;
   if (A === 'cat') s += `<g stroke="${L.dark}" stroke-width="1.6" stroke-linecap="round" opacity=".55"><path d="M64 92 h-14 M65 98 l-13 4"/><path d="M136 92 h14 M135 98 l13 4"/></g>`;
   if (A === 'bear') s += `<ellipse cx="100" cy="92" rx="16" ry="12" fill="${L.patch}" opacity=".0"/>`;
+  if (W('tie')) s += `<path d="M100 130 l-8 6 l8 4 l8 -4 z" fill="#1f63d1"/><path d="M100 140 l-7 24 l7 8 l7 -8 z" fill="#3d8bff" stroke="#1f63d1" stroke-width="1.5"/>`;
+  if (W('ball')) s += `<g transform="translate(150 172)"><circle r="14" fill="#fff" stroke="#222" stroke-width="2"/><path d="M0 -6 l6 4 l-2 7 h-8 l-2 -7 z" fill="#222"/></g>`;
   if (W('glasses')) s += `<g fill="rgba(40,20,70,.85)" stroke="#111" stroke-width="2"><circle cx="82" cy="74" r="12"/><circle cx="118" cy="74" r="12"/></g><path d="M94 74 h12" stroke="#111" stroke-width="3"/>`;
   if (W('bow')) s += `<g transform="translate(130 42) rotate(18)"><path d="M0 0 l-16 -10 v20 z M0 0 l16 -10 v20 z" fill="#ff4fa3"/><circle r="5" fill="#ff8cc6"/></g>`;
   if (W('flower')) s += `<g transform="translate(68 40)">${[0, 72, 144, 216, 288].map((a) => `<circle cx="${(Math.cos(a * Math.PI / 180) * 7).toFixed(1)}" cy="${(Math.sin(a * Math.PI / 180) * 7).toFixed(1)}" r="6" fill="#ffb3d9"/>`).join('')}<circle r="4.5" fill="#ffd23f"/></g>`;
   if (W('hat')) s += `<g transform="translate(100 26)"><rect x="-22" y="-26" width="44" height="30" rx="4" fill="#3b2163"/><rect x="-34" y="2" width="68" height="8" rx="4" fill="#3b2163"/><rect x="-22" y="-6" width="44" height="7" fill="#ff4fa3"/></g>`;
+  if (W('cap')) s += `<g transform="translate(100 34)"><path d="M-38 6 Q-38 -26 0 -28 Q38 -26 38 6 Z" fill="#1f63d1"/><path d="M-6 6 Q30 2 62 12 Q34 20 -6 14 Z" fill="#164aa0"/><circle cy="-27" r="4" fill="#ffd23f"/></g>`;
+  if (W('headphones')) s += `<path d="M50 80 Q50 20 100 20 Q150 20 150 80" stroke="#2a2a3a" stroke-width="7" fill="none"/><rect x="38" y="70" width="18" height="28" rx="8" fill="#ff4d5e"/><rect x="144" y="70" width="18" height="28" rx="8" fill="#ff4d5e"/>`;
   if (W('crown')) s += `<g transform="translate(100 30)"><path d="M-26 6 L-26 -14 L-13 -2 L0 -20 L13 -2 L26 -14 L26 6 Z" fill="#ffd23f" stroke="#c98a00" stroke-width="2"/><circle cy="-2" r="3.5" fill="#ff4fa3"/></g>`;
   return s + '</svg>';
 }
